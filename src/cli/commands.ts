@@ -137,9 +137,6 @@ export function createProgram(): Command {
           if (project.jiraProjects.length > 0) {
             console.log(`    JIRA Projects: ${project.jiraProjects.join(", ")}`);
           }
-          if (project.isWBSO) {
-            console.log(`    WBSO: Yes`);
-          }
           if (project.isDefault) {
             console.log(`    (Default project)`);
           }

@@ -1,10 +1,10 @@
 # JIRA Timesheet Generator
 
-Generate timesheets from JIRA activity for WBSO (Dutch R&D subsidy) compliance reporting.
+Generate timesheets from JIRA activity.
 
 ## Overview
 
-This CLI tool reads your JIRA activity for a specified time period and generates formatted timesheet entries. It's designed to support WBSO reporting requirements where thorough, auditable time tracking documentation is needed.
+This CLI tool reads your JIRA activity for a specified time period and generates formatted timesheet entries. It distributes your configured weekly hours across projects based on actual JIRA activity.
 
 **Key Features:**
 - Fetches JIRA activity (issues, worklogs, assignments) for a user
@@ -58,7 +58,6 @@ Projects are configured in the `.env` file using the `TIMESHEET_PROJECTS` variab
 - `name`: Display name for the project
 - `hours`: Target hours per week for this project
 - `jiraProjects`: Array of JIRA project keys that map to this project (optional)
-- `isWBSO`: Mark as WBSO-eligible for R&D tracking (optional)
 
 Example `.env` configuration:
 
@@ -69,7 +68,7 @@ JIRA_DOMAIN=yourcompany.atlassian.net
 
 # Project Configuration - adjust hours as needed each week (must total 40)
 TIMESHEET_PROJECTS='[
-  {"code":"10001","name":"R&D Project Alpha","hours":20,"jiraProjects":["ALPHA","RESEARCH"],"isWBSO":true},
+  {"code":"10001","name":"R&D Project Alpha","hours":20,"jiraProjects":["ALPHA","RESEARCH"]},
   {"code":"10002","name":"Internal Development","hours":18,"jiraProjects":["INTERNAL"]},
   {"name":"Administration","hours":2}
 ]'
@@ -173,7 +172,7 @@ Hours are distributed to achieve:
 - Proportional distribution based on activity weight
 
 ### 4. Default Entries
-When no JIRA activity exists for a project (e.g., non-WBSO internal work), the tool uses configured default entries like "Administration" to fill the remaining hours.
+When no JIRA activity exists for a project, the tool creates generic timesheet entries (e.g., "Administration") to fill the configured hours.
 
 ## Project Structure
 
@@ -215,12 +214,10 @@ Generate Options:
   --dry-run             Preview without saving
 ```
 
-## WBSO Compliance Notes
-
-This tool is designed to support WBSO (Wet Bevordering Speur- en Ontwikkelingswerk) reporting:
+## Features
 
 - **Auditable trail**: Each timesheet entry links to a specific JIRA ticket
-- **Detailed descriptions**: Ticket summaries provide context for R&D activities
+- **Detailed descriptions**: Ticket summaries provide context for activities
 - **Configurable allocation**: Set hours per project in TIMESHEET_PROJECTS
 - **Weekly format**: Standard 40-hour weeks with daily breakdowns
 

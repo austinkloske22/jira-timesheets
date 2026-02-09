@@ -6,7 +6,6 @@ export const EnvProjectSchema = z.object({
   name: z.string(),
   hours: z.number().min(0),
   jiraProjects: z.array(z.string()).optional(),
-  isWBSO: z.boolean().optional(),
 });
 
 export type EnvProject = z.infer<typeof EnvProjectSchema>;
@@ -17,7 +16,6 @@ export interface ProjectConfig {
   name: string;
   hours: number;
   jiraProjects: string[];
-  isWBSO: boolean;
   isDefault: boolean;
 }
 

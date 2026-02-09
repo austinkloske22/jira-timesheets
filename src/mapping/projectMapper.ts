@@ -53,8 +53,4 @@ export class ProjectMapper {
   getAllProjectCodes(): string[] {
     return this.projects.map((p) => p.code);
   }
-
-  getWBSOProject(): ProjectConfig | undefined {
-    return this.projects.find((p) => p.isWBSO);
-  }
 }

@@ -78,8 +78,7 @@ function parseProjects(projectsJson: string): ProjectConfig[] {
       name: envProject.name,
       hours: envProject.hours,
       jiraProjects: envProject.jiraProjects || [],
-      isWBSO: envProject.isWBSO || false,
-      isDefault: !envProject.isWBSO && envProject.jiraProjects && envProject.jiraProjects.length > 0 ? true : false,
+      isDefault: envProject.jiraProjects && envProject.jiraProjects.length > 0 ? true : false,
     };
 
     projects.push(project);
