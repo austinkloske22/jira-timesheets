@@ -50,17 +50,11 @@ export class ProjectMapper {
     return this.projects.find((p) => p.code === code);
   }
 
-  getTargetAllocation(projectCode: string): number {
-    const project = this.getProjectByCode(projectCode);
-    return project?.targetAllocation || 0;
-  }
-
   getAllProjectCodes(): string[] {
     return this.projects.map((p) => p.code);
   }
 
   getWBSOProject(): ProjectConfig | undefined {
-    // Find project with targetAllocation set (typically WBSO)
-    return this.projects.find((p) => p.targetAllocation && p.targetAllocation > 0);
+    return this.projects.find((p) => p.isWBSO);
   }
 }

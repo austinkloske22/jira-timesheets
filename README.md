@@ -53,45 +53,33 @@ JIRA_DOMAIN=yourcompany.atlassian.net
 
 ### 2. Project Configuration
 
-Edit `config/config.yaml` to configure your projects:
+Projects are configured in the `.env` file using the `TIMESHEET_PROJECTS` variable. Each project specifies:
+- `code`: Timesheet project code (optional for non-billable items like Administration)
+- `name`: Display name for the project
+- `hours`: Target hours per week for this project
+- `jiraProjects`: Array of JIRA project keys that map to this project (optional)
+- `isWBSO`: Mark as WBSO-eligible for R&D tracking (optional)
 
-```yaml
-# Time constraints
-timeSettings:
-  weeklyHours: 40
-  dailyHours: 8
-  workDays:
-    - Monday
-    - Tuesday
-    - Wednesday
-    - Thursday
-    - Friday
+Example `.env` configuration:
 
-# Project mappings
-projects:
-  # WBSO Project - R&D subsidy requiring auditable documentation
-  - code: "12291"
-    name: "WBSO 2026 Skipum: 2601 Clean-Core SAP Add-On for Multi-Platform Landscapes"
-    jiraProjects:
-      - "COSSCLEAN"
-    targetAllocation: 0.50
-    isWBSO: true
+```bash
+JIRA_EMAIL=your.email@company.com
+JIRA_API_TOKEN=your_api_token_here
+JIRA_DOMAIN=yourcompany.atlassian.net
 
-  # Non-WBSO Internal Project
-  - code: "12241"
-    name: "ShipExec For ECC/EWM - Software Development 2026"
-    jiraProjects:
-      - "SHIPEXEC"
-      - "EWM"
-    targetAllocation: 0.50
-    isDefault: true
-    # Default entries when no JIRA activity exists
-    defaultEntries:
-      - description: "Administration"
-        hoursPerWeek: 3
-      - description: "Clean Core Project Development and Guidance"
-        hoursPerWeek: 17
+# Project Configuration - adjust hours as needed each week (must total 40)
+TIMESHEET_PROJECTS='[
+  {"code":"12291","name":"WBSO 2026 Skipum: 2601 Clean-Core SAP Add-On for Multi-Platform Landscapes","hours":20,"jiraProjects":["COSSCLEAN"],"isWBSO":true},
+  {"code":"12241","name":"ShipExec For ECC/EWM - Software Development 2026","hours":18},
+  {"name":"Administration","hours":2}
+]'
 ```
+
+**Notes:**
+- Hours must total exactly 40
+- Projects with `jiraProjects` will have hours distributed across matching JIRA tickets
+- Projects without `jiraProjects` create generic timesheet entries
+- Adjust hours each week as needed to reflect actual time allocation
 
 ## Usage
 
@@ -187,8 +175,6 @@ When no JIRA activity exists for a project (e.g., non-WBSO internal work), the t
 
 ```
 jira-timesheets/
-├── config/
-│   └── config.yaml           # Project mappings & settings
 ├── src/
 │   ├── index.ts              # CLI entry point
 │   ├── cli/commands.ts       # CLI commands
@@ -200,7 +186,7 @@ jira-timesheets/
 │   ├── timesheet/            # Timesheet generator
 │   └── output/               # Text/CSV renderers
 ├── output/                   # Generated timesheets
-├── .env                      # JIRA credentials (not committed)
+├── .env                      # JIRA credentials & project config (not committed)
 └── package.json
 ```
 
@@ -222,7 +208,7 @@ Generate Options:
   -f, --format <format> Output format: text, csv (default: text)
   --save                Save to file instead of terminal
   -o, --output <dir>    Output directory
-  -c, --config <path>   Path to config file
+  --dry-run             Preview without saving
 ```
 
 ## WBSO Compliance Notes

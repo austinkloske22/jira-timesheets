@@ -1,32 +1,29 @@
 import { z } from "zod";
 
-export const DefaultEntrySchema = z.object({
-  description: z.string(),
-  hoursPerWeek: z.number(),
-});
-
-export const ProjectConfigSchema = z.object({
-  code: z.string(),
+// Project configuration from environment
+export const EnvProjectSchema = z.object({
+  code: z.string().optional(), // Optional for non-JIRA entries like "Administration"
   name: z.string(),
-  jiraProjects: z.array(z.string()),
-  targetAllocation: z.number().min(0).max(1).optional(),
-  isDefault: z.boolean().optional(),
+  hours: z.number().min(0),
+  jiraProjects: z.array(z.string()).optional(),
   isWBSO: z.boolean().optional(),
-  defaultEntries: z.array(DefaultEntrySchema).optional(),
 });
 
-export type DefaultEntry = z.infer<typeof DefaultEntrySchema>;
+export type EnvProject = z.infer<typeof EnvProjectSchema>;
+
+// Full project config used internally
+export interface ProjectConfig {
+  code: string;
+  name: string;
+  hours: number;
+  jiraProjects: string[];
+  isWBSO: boolean;
+  isDefault: boolean;
+}
 
 export const TimeSettingsSchema = z.object({
   weeklyHours: z.number().default(40),
   dailyHours: z.number().default(8),
-  workDays: z.array(z.string()).default([
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-  ]),
 });
 
 export const ActivityWeightsSchema = z.object({
@@ -38,28 +35,26 @@ export const ActivityWeightsSchema = z.object({
 });
 
 export const OutputSettingsSchema = z.object({
-  defaultFormat: z.enum(["excel", "csv"]).default("excel"),
+  defaultFormat: z.enum(["text", "csv"]).default("text"),
   directory: z.string().default("./output"),
-  filenameTemplate: z.string().default("timesheet-{year}-W{week}"),
 });
 
-export const ConfigSchema = z.object({
-  timeSettings: TimeSettingsSchema,
-  projects: z.array(ProjectConfigSchema),
-  activityWeights: ActivityWeightsSchema,
-  output: OutputSettingsSchema,
-});
+export interface Config {
+  timeSettings: z.infer<typeof TimeSettingsSchema>;
+  projects: ProjectConfig[];
+  activityWeights: z.infer<typeof ActivityWeightsSchema>;
+  output: z.infer<typeof OutputSettingsSchema>;
+}
 
-export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 export type TimeSettings = z.infer<typeof TimeSettingsSchema>;
 export type ActivityWeights = z.infer<typeof ActivityWeightsSchema>;
 export type OutputSettings = z.infer<typeof OutputSettingsSchema>;
-export type Config = z.infer<typeof ConfigSchema>;
 
 export const EnvSchema = z.object({
   JIRA_EMAIL: z.string().email("JIRA_EMAIL must be a valid email"),
   JIRA_API_TOKEN: z.string().min(1, "JIRA_API_TOKEN is required"),
   JIRA_DOMAIN: z.string().min(1, "JIRA_DOMAIN is required"),
+  TIMESHEET_PROJECTS: z.string().min(1, "TIMESHEET_PROJECTS is required"),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;

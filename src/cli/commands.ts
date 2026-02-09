@@ -53,10 +53,9 @@ export function createProgram(): Command {
     .option("--save", "Save output to file instead of printing to terminal")
     .option("-o, --output <dir>", "Output directory")
     .option("--dry-run", "Preview without saving")
-    .option("-c, --config <path>", "Path to config file")
     .action(async (options) => {
       try {
-        const { env, config } = loadFullConfig(options.config);
+        const { env, config } = loadFullConfig();
         const authConfig = createAuthConfig(env);
         const client = new JiraClient(authConfig);
 
@@ -116,10 +115,9 @@ export function createProgram(): Command {
   program
     .command("config")
     .description("Show current configuration")
-    .option("-c, --config <path>", "Path to config file")
-    .action((options) => {
+    .action(() => {
       try {
-        const { env, config } = loadFullConfig(options.config);
+        const { env, config } = loadFullConfig();
 
         console.log("\n--- Configuration ---\n");
         console.log("JIRA Settings:");
@@ -131,12 +129,16 @@ export function createProgram(): Command {
         console.log(`  Weekly Hours: ${config.timeSettings.weeklyHours}`);
         console.log(`  Daily Hours:  ${config.timeSettings.dailyHours}`);
 
-        console.log("\nProject Mappings:");
+        console.log("\nProjects:");
         for (const project of config.projects) {
-          console.log(`  ${project.code} - ${project.name}`);
-          console.log(`    JIRA Projects: ${project.jiraProjects.join(", ")}`);
-          if (project.targetAllocation) {
-            console.log(`    Target Allocation: ${project.targetAllocation * 100}%`);
+          const code = project.code || "(no code)";
+          console.log(`  ${code} - ${project.name}`);
+          console.log(`    Hours: ${project.hours}`);
+          if (project.jiraProjects.length > 0) {
+            console.log(`    JIRA Projects: ${project.jiraProjects.join(", ")}`);
+          }
+          if (project.isWBSO) {
+            console.log(`    WBSO: Yes`);
           }
           if (project.isDefault) {
             console.log(`    (Default project)`);

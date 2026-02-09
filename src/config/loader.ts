@@ -1,8 +1,16 @@
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
-import yaml from "js-yaml";
 import dotenv from "dotenv";
-import { Config, ConfigSchema, EnvConfig, EnvSchema } from "./schema.js";
+import { z } from "zod";
+import {
+  Config,
+  EnvConfig,
+  EnvSchema,
+  EnvProjectSchema,
+  EnvProject,
+  ProjectConfig,
+  TimeSettingsSchema,
+  ActivityWeightsSchema,
+  OutputSettingsSchema,
+} from "./schema.js";
 
 export class ConfigurationError extends Error {
   constructor(message: string) {
@@ -22,38 +30,91 @@ export function loadEnv(): EnvConfig {
       .map((e) => `  - ${e.path.join(".")}: ${e.message}`)
       .join("\n");
     throw new ConfigurationError(
-      `Invalid environment configuration:\n${errors}\n\nMake sure you have a .env file with JIRA_EMAIL, JIRA_API_TOKEN, and JIRA_DOMAIN`
+      `Invalid environment configuration:\n${errors}\n\nMake sure you have a .env file with JIRA_EMAIL, JIRA_API_TOKEN, JIRA_DOMAIN, and TIMESHEET_PROJECTS`
     );
   }
 
   return result.data;
 }
 
-export function loadConfig(configPath?: string): Config {
-  const defaultPath = resolve(process.cwd(), "config", "config.yaml");
-  const filePath = configPath || defaultPath;
+function parseProjects(projectsJson: string): ProjectConfig[] {
+  let parsed: unknown;
 
-  if (!existsSync(filePath)) {
+  try {
+    // Remove surrounding quotes if present (from shell escaping)
+    const cleaned = projectsJson.replace(/^'|'$/g, "").trim();
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
     throw new ConfigurationError(
-      `Configuration file not found: ${filePath}\n\nCreate a config/config.yaml file or specify a path with --config`
+      `Failed to parse TIMESHEET_PROJECTS as JSON: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
-  const fileContent = readFileSync(filePath, "utf-8");
-  const parsed = yaml.load(fileContent);
+  if (!Array.isArray(parsed)) {
+    throw new ConfigurationError("TIMESHEET_PROJECTS must be a JSON array");
+  }
 
-  const result = ConfigSchema.safeParse(parsed);
+  const projects: ProjectConfig[] = [];
+  let totalHours = 0;
 
-  if (!result.success) {
-    const errors = result.error.errors
-      .map((e) => `  - ${e.path.join(".")}: ${e.message}`)
-      .join("\n");
+  for (let i = 0; i < parsed.length; i++) {
+    const result = EnvProjectSchema.safeParse(parsed[i]);
+
+    if (!result.success) {
+      const errors = result.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join(", ");
+      throw new ConfigurationError(
+        `Invalid project at index ${i}: ${errors}`
+      );
+    }
+
+    const envProject: EnvProject = result.data;
+    totalHours += envProject.hours;
+
+    // Convert to internal ProjectConfig
+    const project: ProjectConfig = {
+      code: envProject.code || "",
+      name: envProject.name,
+      hours: envProject.hours,
+      jiraProjects: envProject.jiraProjects || [],
+      isWBSO: envProject.isWBSO || false,
+      isDefault: !envProject.isWBSO && envProject.jiraProjects && envProject.jiraProjects.length > 0 ? true : false,
+    };
+
+    projects.push(project);
+  }
+
+  // Validate total hours
+  if (Math.abs(totalHours - 40) > 0.5) {
     throw new ConfigurationError(
-      `Invalid configuration in ${filePath}:\n${errors}`
+      `TIMESHEET_PROJECTS hours must total 40, but got ${totalHours}`
     );
   }
 
-  return result.data;
+  if (projects.length === 0) {
+    throw new ConfigurationError("TIMESHEET_PROJECTS must have at least one project");
+  }
+
+  return projects;
+}
+
+export function loadConfig(): Config {
+  const env = loadEnv();
+  const projects = parseProjects(env.TIMESHEET_PROJECTS);
+
+  // Calculate total hours for validation
+  const totalHours = projects.reduce((sum, p) => sum + p.hours, 0);
+
+  return {
+    timeSettings: TimeSettingsSchema.parse({
+      weeklyHours: totalHours,
+      dailyHours: 8,
+    }),
+    projects,
+    activityWeights: ActivityWeightsSchema.parse({}),
+    output: OutputSettingsSchema.parse({}),
+  };
 }
 
 export interface FullConfig {
@@ -61,9 +122,21 @@ export interface FullConfig {
   config: Config;
 }
 
-export function loadFullConfig(configPath?: string): FullConfig {
+export function loadFullConfig(): FullConfig {
+  const env = loadEnv();
+  const projects = parseProjects(env.TIMESHEET_PROJECTS);
+  const totalHours = projects.reduce((sum, p) => sum + p.hours, 0);
+
   return {
-    env: loadEnv(),
-    config: loadConfig(configPath),
+    env,
+    config: {
+      timeSettings: TimeSettingsSchema.parse({
+        weeklyHours: totalHours,
+        dailyHours: 8,
+      }),
+      projects,
+      activityWeights: ActivityWeightsSchema.parse({}),
+      output: OutputSettingsSchema.parse({}),
+    },
   };
 }

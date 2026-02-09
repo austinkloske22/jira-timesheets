@@ -48,12 +48,10 @@ function isWeekday(day: DayOfWeek): boolean {
 
 export class HourDistributor {
   private config: Config;
-  private weeklyHours: number;
   private dailyHours: number;
 
   constructor(config: Config) {
     this.config = config;
-    this.weeklyHours = config.timeSettings.weeklyHours;
     this.dailyHours = config.timeSettings.dailyHours;
   }
 
@@ -61,43 +59,40 @@ export class HourDistributor {
     activities: MappedActivity[],
     dateRange: DateRange
   ): DistributionResult {
-    // Find WBSO and non-WBSO projects
-    const wbsoProject = this.config.projects.find((p) => p.isWBSO);
-    const nonWbsoProject = this.config.projects.find((p) => p.isDefault && !p.isWBSO);
+    const allEntries: TimesheetEntry[] = [];
 
-    if (!wbsoProject || !nonWbsoProject) {
-      throw new Error("Configuration must have both a WBSO project (isWBSO: true) and a default non-WBSO project");
+    // Process each project from config
+    for (const project of this.config.projects) {
+      const projectHours = project.hours;
+
+      if (projectHours <= 0) continue;
+
+      // Check if this project has JIRA activity
+      if (project.jiraProjects.length > 0) {
+        // Find activities matching this project
+        const projectActivities = activities.filter(
+          (a) => a.projectCode === project.code
+        );
+
+        if (projectActivities.length > 0) {
+          // Distribute hours to JIRA activities
+          const entries = this.distributeToActivities(
+            projectActivities,
+            projectHours,
+            dateRange
+          );
+          allEntries.push(...entries);
+        } else {
+          // No JIRA activity - create a generic entry
+          const entry = this.createGenericEntry(project, projectHours);
+          allEntries.push(entry);
+        }
+      } else {
+        // Non-JIRA project (like Administration) - create direct entry
+        const entry = this.createGenericEntry(project, projectHours);
+        allEntries.push(entry);
+      }
     }
-
-    // Calculate target hours for each (50/50 split)
-    const wbsoTargetHours = this.weeklyHours * (wbsoProject.targetAllocation || 0.5);
-    const nonWbsoTargetHours = this.weeklyHours - wbsoTargetHours;
-
-    // Separate activities by project
-    const wbsoActivities = activities.filter((a) => a.projectCode === wbsoProject.code);
-    const nonWbsoActivities = activities.filter((a) => a.projectCode === nonWbsoProject.code);
-
-    // Distribute WBSO hours to JIRA activities
-    const wbsoEntries = this.distributeToActivities(
-      wbsoActivities,
-      wbsoTargetHours,
-      dateRange
-    );
-
-    // Distribute non-WBSO hours - use default entries if no JIRA activity
-    let nonWbsoEntries: TimesheetEntry[];
-    if (nonWbsoActivities.length > 0) {
-      nonWbsoEntries = this.distributeToActivities(
-        nonWbsoActivities,
-        nonWbsoTargetHours,
-        dateRange
-      );
-    } else {
-      // Use default entries from config
-      nonWbsoEntries = this.createDefaultEntries(nonWbsoProject, nonWbsoTargetHours);
-    }
-
-    const allEntries = [...wbsoEntries, ...nonWbsoEntries];
 
     // Balance daily totals to exactly 8 hours per weekday
     this.balanceDailyHours(allEntries);
@@ -118,55 +113,21 @@ export class HourDistributor {
     };
   }
 
-  private createDefaultEntries(
+  private createGenericEntry(
     project: ProjectConfig,
     totalHours: number
-  ): TimesheetEntry[] {
-    const entries: TimesheetEntry[] = [];
-    const defaultEntries = project.defaultEntries || [];
+  ): TimesheetEntry {
+    const hoursByDay = this.distributeHoursToDays(totalHours, WEEKDAYS);
 
-    if (defaultEntries.length === 0) {
-      // No default entries configured, create a generic one
-      entries.push({
-        projectCode: project.code,
-        projectName: project.name,
-        issueKey: "",
-        issueSummary: "General Development",
-        issueUrl: "",
-        hoursByDay: this.distributeHoursToDays(totalHours, WEEKDAYS),
-        total: totalHours,
-      });
-      return entries;
-    }
-
-    // Use configured default entries
-    let remainingHours = totalHours;
-    for (let i = 0; i < defaultEntries.length; i++) {
-      const entry = defaultEntries[i];
-      const isLast = i === defaultEntries.length - 1;
-
-      // Use configured hours, or remaining hours for the last entry
-      const entryHours = isLast ? remainingHours : Math.min(entry.hoursPerWeek, remainingHours);
-
-      if (entryHours <= 0) continue;
-
-      // Spread hours across weekdays
-      const hoursByDay = this.distributeHoursToDays(entryHours, WEEKDAYS);
-
-      entries.push({
-        projectCode: project.code,
-        projectName: project.name,
-        issueKey: "",
-        issueSummary: entry.description,
-        issueUrl: "",
-        hoursByDay,
-        total: entryHours,
-      });
-
-      remainingHours -= entryHours;
-    }
-
-    return entries;
+    return {
+      projectCode: project.code,
+      projectName: project.name,
+      issueKey: "",
+      issueSummary: project.name,
+      issueUrl: "",
+      hoursByDay,
+      total: totalHours,
+    };
   }
 
   private distributeToActivities(
@@ -215,7 +176,7 @@ export class HourDistributor {
         .sort((a, b) => activities[b].totalWeight - activities[a].totalWeight);
 
       if (diff > 0) {
-        // Need to add hours - add to highest weight activity that can still grow
+        // Need to add hours - add to highest weight activity
         for (const idx of sortedIndices) {
           roundedHours[idx] += 0.5;
           break;
