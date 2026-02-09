@@ -69,8 +69,8 @@ JIRA_DOMAIN=yourcompany.atlassian.net
 
 # Project Configuration - adjust hours as needed each week (must total 40)
 TIMESHEET_PROJECTS='[
-  {"code":"12291","name":"WBSO 2026 Skipum: 2601 Clean-Core SAP Add-On for Multi-Platform Landscapes","hours":20,"jiraProjects":["COSSCLEAN"],"isWBSO":true},
-  {"code":"12241","name":"ShipExec For ECC/EWM - Software Development 2026","hours":18},
+  {"code":"10001","name":"R&D Project Alpha","hours":20,"jiraProjects":["ALPHA","RESEARCH"],"isWBSO":true},
+  {"code":"10002","name":"Internal Development","hours":18,"jiraProjects":["INTERNAL"]},
   {"name":"Administration","hours":2}
 ]'
 ```
@@ -129,19 +129,23 @@ January 31, 2026 to February 6, 2026
 Project / Description                                           S   Su    M    T    W   Th    F  Total
 ──────────────────────────────────────────────────────────────────────────────────────────
 
-12291 - WBSO 2026 Skipum: 2601 Clean-Core SAP Add-On for Multi-Platform Landscapes
+10001 - R&D Project Alpha
 ──────────────────────────────────────────────────────────────────────────────────────────
-  ATC Check Errors                                              -    -    -    -  1.5  0.5  2.5   4.5
-    └─ https://shipexec.atlassian.net/browse/COSSCLEAN-181
-  Add App Tile, Catalog and Authorizations                      -    -    -  4.0    -    -    -   4.0
-    └─ https://shipexec.atlassian.net/browse/COSSCLEAN-170
-  Subtotal:                                                                                       17.0
+  Implement new feature for API integration                     -    -  2.0  2.0  2.0  2.0  2.0  10.0
+    └─ https://yourcompany.atlassian.net/browse/ALPHA-123
+  Fix authentication bug in login flow                          -    -  2.0  2.0  2.0  2.0  2.0  10.0
+    └─ https://yourcompany.atlassian.net/browse/ALPHA-456
+  Subtotal:                                                                                       20.0
 
-12241 - ShipExec For ECC/EWM - Software Development 2026
+10002 - Internal Development
 ──────────────────────────────────────────────────────────────────────────────────────────
-  Administration                                                -    -  0.5  0.5  1.5  1.0  2.5   6.0
-  Clean Core Project Development and Guidance                   -    -  3.5  3.5  3.5  3.5  3.0  17.0
-  Subtotal:                                                                                       23.0
+  Internal Development                                          -    -  3.5  3.5  3.5  3.5  4.0  18.0
+  Subtotal:                                                                                       18.0
+
+(no code) - Administration
+──────────────────────────────────────────────────────────────────────────────────────────
+  Administration                                                -    -  0.5  0.5  0.5  0.5    -   2.0
+  Subtotal:                                                                                        2.0
 
 ══════════════════════════════════════════════════════════════════════════════════════════
 TOTAL                                                         0.0  0.0  8.0  8.0  8.0  8.0  8.0  40.0
@@ -158,7 +162,7 @@ The tool queries JIRA for your activity in the specified date range:
 
 ### 2. Project Mapping
 Each JIRA ticket is mapped to a timesheet project based on:
-- JIRA project key (e.g., `COSSCLEAN` → project code `12291`)
+- JIRA project key (e.g., `ALPHA` → project code `10001`)
 - Default project for unmapped tickets
 
 ### 3. Hour Distribution
