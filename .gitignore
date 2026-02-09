@@ -10,6 +10,7 @@ dist/
 # Output files
 output/*.xlsx
 output/*.csv
+output/*.txt
 
 # IDE
 .idea/
