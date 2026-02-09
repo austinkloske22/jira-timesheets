@@ -10,7 +10,7 @@ This CLI tool reads your JIRA activity for a specified time period and generates
 - Fetches JIRA activity (issues, worklogs, assignments) for a user
 - Maps JIRA projects to timesheet project codes
 - Distributes 40 hours/week across Monday-Friday (8 hrs/day)
-- Maintains ~50% split between WBSO and non-WBSO projects
+- Distributes hours per project based on your TIMESHEET_PROJECTS configuration
 - Outputs clean, formatted text to terminal or file
 - **Read-only** - never writes to JIRA
 
@@ -165,7 +165,7 @@ Each JIRA ticket is mapped to a timesheet project based on:
 Hours are distributed to achieve:
 - **40 hours/week** total
 - **8 hours/day** Monday-Friday (weekends = 0)
-- **~50% WBSO** allocation (configurable, ±20% tolerance)
+- Hours per project as configured in TIMESHEET_PROJECTS
 - Proportional distribution based on activity weight
 
 ### 4. Default Entries
@@ -217,7 +217,7 @@ This tool is designed to support WBSO (Wet Bevordering Speur- en Ontwikkelingswe
 
 - **Auditable trail**: Each timesheet entry links to a specific JIRA ticket
 - **Detailed descriptions**: Ticket summaries provide context for R&D activities
-- **Consistent allocation**: ~50% of time allocated to WBSO-eligible work
+- **Configurable allocation**: Set hours per project in TIMESHEET_PROJECTS
 - **Weekly format**: Standard 40-hour weeks with daily breakdowns
 
 ## License
