@@ -1,6 +1,6 @@
 # JIRA Activity
 
-Query your JIRA activity for a given week and get a copy-paste friendly list of issues with links.
+Query your JIRA activity for a given week. Outputs a formatted table with activity types and clickable links, designed for easy copy-paste into external systems.
 
 ## Setup
 
@@ -34,17 +34,11 @@ npm run dev -- --week 2026-W13
 # Custom date range
 npm run dev -- --start 2026-03-16 --end 2026-03-20
 
-# Plain text output (instead of markdown)
-npm run dev -- -f plain
-
 # Save to file
 npm run dev -- --save
 
 # Test JIRA connection
 npm run dev -- test-connection
-
-# Show config
-npm run dev -- config
 ```
 
 ## What It Queries
@@ -57,24 +51,26 @@ Issues where you are:
 
 All issues updated within the specified date range are included.
 
+## Activity Types
+
+For each issue, the tool detects your specific involvement by checking changelogs, worklogs, and comments:
+
+| Activity | Meaning |
+|---|---|
+| Assignee | You are the current assignee |
+| Reporter | You created the issue |
+| Worklog | You logged time during the period |
+| Status Change | You transitioned the issue status |
+| Comment | You commented during the period |
+| Watcher | You're watching but had no other direct activity |
+
+An issue can have multiple activity types.
+
 ## Output
 
-Issues are grouped by JIRA project with links on their own line for easy copying:
+Issues are grouped by JIRA project in a formatted table with URLs on their own line for easy copying:
 
-```markdown
-## JIRA Activity: Week 13, 2026
-**March 16, 2026 to March 22, 2026**
-
-### COSSCLEAN
-
-- **COSSCLEAN-181** - ATC Check Errors _(In Progress)_
-  https://yourcompany.atlassian.net/browse/COSSCLEAN-181
-
-- **COSSCLEAN-175** - Transport handling fix _(Done)_
-  https://yourcompany.atlassian.net/browse/COSSCLEAN-175
-
-**2 issues total**
-```
+![Sample Run](Sample-Run.png)
 
 ## License
 
