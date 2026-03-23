@@ -1,6 +1,8 @@
 import { JiraClient, JiraIssue, JiraUser } from "./jira/client.js";
 import { DateRange } from "./jira/queries.js";
 
+const DAY_LABELS = ["Su", "M", "Tu", "W", "Th", "F", "Sa"] as const;
+
 export interface EnrichedIssue {
   key: string;
   summary: string;
@@ -8,6 +10,7 @@ export interface EnrichedIssue {
   projectKey: string;
   url: string;
   activityTypes: string[];
+  activeDays: string[];
 }
 
 interface ChangelogHistory {
@@ -39,6 +42,7 @@ async function detectActivities(
   domain: string
 ): Promise<EnrichedIssue> {
   const activities: string[] = [];
+  const daySet = new Set<number>(); // day-of-week indices
 
   // Assignee / Reporter from existing search data (no extra API calls)
   if (issue.fields.assignee?.accountId === currentUser.accountId) {
@@ -61,6 +65,9 @@ async function detectActivities(
   );
   if (userWorklogs.length > 0) {
     activities.push("Worklog");
+    for (const w of userWorklogs) {
+      daySet.add(new Date(w.started).getDay());
+    }
   }
 
   // Check changelog for status changes by user within date range
@@ -71,6 +78,10 @@ async function detectActivities(
     const created = history.created ? new Date(history.created) : null;
     if (created && (created < dateRange.start || created > dateRange.end))
       continue;
+
+    if (created) {
+      daySet.add(created.getDay());
+    }
 
     for (const item of history.items || []) {
       if (item.field === "status" && !activities.includes("Status Change")) {
@@ -87,12 +98,21 @@ async function detectActivities(
   });
   if (userComments.length > 0) {
     activities.push("Comment");
+    for (const c of userComments) {
+      daySet.add(new Date(c.created).getDay());
+    }
   }
 
   // If we got here via watcher but none of the above matched, label it
   if (activities.length === 0) {
     activities.push("Watcher");
   }
+
+  // Convert day indices to labels, ordered M-F (skip weekends unless present)
+  const dayOrder = [1, 2, 3, 4, 5, 0, 6]; // M, Tu, W, Th, F, Su, Sa
+  const activeDays = dayOrder
+    .filter((d) => daySet.has(d))
+    .map((d) => DAY_LABELS[d]);
 
   return {
     key: issue.key,
@@ -101,5 +121,6 @@ async function detectActivities(
     projectKey: issue.fields.project.key,
     url: `https://${domain}/browse/${issue.key}`,
     activityTypes: activities,
+    activeDays,
   };
 }

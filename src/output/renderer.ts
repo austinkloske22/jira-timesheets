@@ -55,10 +55,11 @@ export function render(
 
   // Column widths
   const keyW = 18;
-  const summaryW = 48;
+  const summaryW = 44;
   const statusW = 20;
+  const daysW = 16;
   const activityW = 30;
-  const totalW = keyW + summaryW + statusW + activityW + 6; // +6 for separators
+  const totalW = keyW + summaryW + statusW + daysW + activityW + 8; // +8 for separators
 
   const groups = groupByProject(issues);
 
@@ -76,12 +77,15 @@ export function render(
         "  " +
         pad("Status", statusW) +
         "  " +
+        pad("Days", daysW) +
+        "  " +
         "Activity"
     );
     lines.push("  " + "\u2500".repeat(totalW));
 
     for (const issue of group.issues) {
       const activity = issue.activityTypes.join(", ");
+      const days = issue.activeDays.join(", ");
 
       lines.push(
         "  " +
@@ -90,6 +94,8 @@ export function render(
           pad(truncate(issue.summary, summaryW), summaryW) +
           "  " +
           pad(issue.status, statusW) +
+          "  " +
+          pad(days, daysW) +
           "  " +
           activity
       );
