@@ -42,7 +42,7 @@ export function buildCombinedActivityQuery(dateRange: DateRange): string {
   const start = formatDate(dateRange.start);
   const end = formatDate(dateRange.end);
 
-  return `(assignee = currentUser() OR reporter = currentUser() OR worklogAuthor = currentUser()) AND updated >= "${start}" AND updated <= "${end}" ORDER BY updated DESC`;
+  return `(assignee = currentUser() OR reporter = currentUser() OR worklogAuthor = currentUser() OR watcher = currentUser()) AND updated >= "${start}" AND updated <= "${end}" ORDER BY updated DESC`;
 }
 
 export function getWeekDateRange(weekOffset = 0): DateRange {

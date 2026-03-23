@@ -1,40 +1,11 @@
-# JIRA Timesheet Generator
+# JIRA Activity
 
-Generate timesheets from JIRA activity.
+Query your JIRA activity for a given week and get a copy-paste friendly list of issues with links.
 
-## Overview
-
-This CLI tool reads your JIRA activity for a specified time period and generates formatted timesheet entries. It distributes your configured weekly hours across projects based on actual JIRA activity.
-
-**Key Features:**
-- Fetches JIRA activity (issues, worklogs, assignments) for a user
-- Maps JIRA projects to timesheet project codes
-- Distributes 40 hours/week across Monday-Friday (8 hrs/day)
-- Distributes hours per project based on your TIMESHEET_PROJECTS configuration
-- Outputs clean, formatted text to terminal or file
-- **Read-only** - never writes to JIRA
-
-## Installation
+## Setup
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd jira-timesheets
-
-# Install dependencies
 npm install
-
-# Build (optional, for production use)
-npm run build
-```
-
-## Configuration
-
-### 1. Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
 cp .env.example .env
 ```
 
@@ -49,177 +20,61 @@ JIRA_DOMAIN=yourcompany.atlassian.net
 **Getting a JIRA API Token:**
 1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
 2. Click "Create API token"
-3. Give it a label and copy the token
-
-### 2. Project Configuration
-
-Projects are configured in the `.env` file using the `TIMESHEET_PROJECTS` variable. Each project specifies:
-- `code`: Timesheet project code (optional for non-billable items like Administration)
-- `name`: Display name for the project
-- `hours`: Target hours per week for this project
-- `jiraProjects`: Array of JIRA project keys that map to this project (optional)
-
-Example `.env` configuration:
-
-```bash
-JIRA_EMAIL=your.email@company.com
-JIRA_API_TOKEN=your_api_token_here
-JIRA_DOMAIN=yourcompany.atlassian.net
-
-# Project Configuration - adjust hours as needed each week (must total 40)
-TIMESHEET_PROJECTS='[
-  {"code":"10001","name":"R&D Project Alpha","hours":20,"jiraProjects":["ALPHA","RESEARCH"]},
-  {"code":"10002","name":"Internal Development","hours":18,"jiraProjects":["INTERNAL"]},
-  {"name":"Administration","hours":2}
-]'
-```
-
-**Notes:**
-- Hours must total exactly 40
-- Projects with `jiraProjects` will have hours distributed across matching JIRA tickets
-- Projects without `jiraProjects` create generic timesheet entries
-- Adjust hours each week as needed to reflect actual time allocation
+3. Copy the token into your `.env`
 
 ## Usage
 
-### Generate Timesheet (Previous Week)
-
 ```bash
-npm run dev -- generate
-```
+# List activity for previous week (default)
+npm run dev
 
-### Generate for Specific Week
+# Specific ISO week
+npm run dev -- --week 2026-W13
 
-```bash
-# ISO week format
-npm run dev -- generate --week 2026-W05
+# Custom date range
+npm run dev -- --start 2026-03-16 --end 2026-03-20
 
-# Date range
-npm run dev -- generate --start 2026-01-31 --end 2026-02-06
-```
+# Plain text output (instead of markdown)
+npm run dev -- -f plain
 
-### Save to File
+# Save to file
+npm run dev -- --save
 
-```bash
-npm run dev -- generate --save
-# Creates: output/timesheet-2026-W05.txt
-```
-
-### Test JIRA Connection
-
-```bash
+# Test JIRA connection
 npm run dev -- test-connection
-```
 
-### View Configuration
-
-```bash
+# Show config
 npm run dev -- config
 ```
 
-## Output Format
+## What It Queries
 
+Issues where you are:
+- **Assignee** - assigned to you
+- **Reporter** - you created
+- **Worklog author** - you logged time
+- **Watcher** - you're watching (includes issues you commented on)
+
+All issues updated within the specified date range are included.
+
+## Output
+
+Issues are grouped by JIRA project with links on their own line for easy copying:
+
+```markdown
+## JIRA Activity: Week 13, 2026
+**March 16, 2026 to March 22, 2026**
+
+### COSSCLEAN
+
+- **COSSCLEAN-181** - ATC Check Errors _(In Progress)_
+  https://yourcompany.atlassian.net/browse/COSSCLEAN-181
+
+- **COSSCLEAN-175** - Transport handling fix _(Done)_
+  https://yourcompany.atlassian.net/browse/COSSCLEAN-175
+
+**2 issues total**
 ```
-══════════════════════════════════════════════════════════════════════════════════════════
-TIMESHEET: Week 5 Period 1, 2026
-January 31, 2026 to February 6, 2026
-══════════════════════════════════════════════════════════════════════════════════════════
-
-Project / Description                                           S   Su    M    T    W   Th    F  Total
-──────────────────────────────────────────────────────────────────────────────────────────
-
-10001 - R&D Project Alpha
-──────────────────────────────────────────────────────────────────────────────────────────
-  Implement new feature for API integration                     -    -  2.0  2.0  2.0  2.0  2.0  10.0
-    └─ https://yourcompany.atlassian.net/browse/ALPHA-123
-  Fix authentication bug in login flow                          -    -  2.0  2.0  2.0  2.0  2.0  10.0
-    └─ https://yourcompany.atlassian.net/browse/ALPHA-456
-  Subtotal:                                                                                       20.0
-
-10002 - Internal Development
-──────────────────────────────────────────────────────────────────────────────────────────
-  Internal Development                                          -    -  3.5  3.5  3.5  3.5  4.0  18.0
-  Subtotal:                                                                                       18.0
-
-(no code) - Administration
-──────────────────────────────────────────────────────────────────────────────────────────
-  Administration                                                -    -  0.5  0.5  0.5  0.5    -   2.0
-  Subtotal:                                                                                        2.0
-
-══════════════════════════════════════════════════════════════════════════════════════════
-TOTAL                                                         0.0  0.0  8.0  8.0  8.0  8.0  8.0  40.0
-══════════════════════════════════════════════════════════════════════════════════════════
-```
-
-## How It Works
-
-### 1. Activity Collection
-The tool queries JIRA for your activity in the specified date range:
-- Issues assigned to you
-- Issues where you logged work
-- Issues you reported or updated
-
-### 2. Project Mapping
-Each JIRA ticket is mapped to a timesheet project based on:
-- JIRA project key (e.g., `ALPHA` → project code `10001`)
-- Default project for unmapped tickets
-
-### 3. Hour Distribution
-Hours are distributed to achieve:
-- **40 hours/week** total
-- **8 hours/day** Monday-Friday (weekends = 0)
-- Hours per project as configured in TIMESHEET_PROJECTS
-- Proportional distribution based on activity weight
-
-### 4. Default Entries
-When no JIRA activity exists for a project, the tool creates generic timesheet entries (e.g., "Administration") to fill the configured hours.
-
-## Project Structure
-
-```
-jira-timesheets/
-├── src/
-│   ├── index.ts              # CLI entry point
-│   ├── cli/commands.ts       # CLI commands
-│   ├── config/               # Config loading & validation
-│   ├── jira/                 # JIRA API client (read-only)
-│   ├── activity/             # Activity aggregation
-│   ├── mapping/              # Project mapper
-│   ├── distribution/         # Hour distribution algorithm
-│   ├── timesheet/            # Timesheet generator
-│   └── output/               # Text/CSV renderers
-├── output/                   # Generated timesheets
-├── .env                      # JIRA credentials & project config (not committed)
-└── package.json
-```
-
-## CLI Reference
-
-```
-Usage: jira-timesheet [options] [command]
-
-Commands:
-  generate [options]    Generate a timesheet for a week
-  test-connection       Test connection to JIRA
-  config                Show current configuration
-  help [command]        Display help for command
-
-Generate Options:
-  -w, --week <week>     ISO week (e.g., 2026-W03)
-  --start <date>        Start date (YYYY-MM-DD)
-  --end <date>          End date (YYYY-MM-DD)
-  -f, --format <format> Output format: text, csv (default: text)
-  --save                Save to file instead of terminal
-  -o, --output <dir>    Output directory
-  --dry-run             Preview without saving
-```
-
-## Features
-
-- **Auditable trail**: Each timesheet entry links to a specific JIRA ticket
-- **Detailed descriptions**: Ticket summaries provide context for activities
-- **Configurable allocation**: Set hours per project in TIMESHEET_PROJECTS
-- **Weekly format**: Standard 40-hour weeks with daily breakdowns
 
 ## License
 

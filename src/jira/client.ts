@@ -48,6 +48,13 @@ export interface JiraWorklog {
   };
 }
 
+export interface JiraComment {
+  id: string;
+  author: JiraUser;
+  created: string;
+  updated: string;
+}
+
 export interface JiraSearchResponse {
   issues: JiraIssue[];
   total?: number;
@@ -181,6 +188,21 @@ export class JiraClient {
       throw this.handleError(
         error,
         `Failed to get changelog for issue: ${issueKey}`
+      );
+    }
+  }
+
+  async getIssueComments(issueKey: string): Promise<JiraComment[]> {
+    try {
+      const response = await this.client.get<{ comments: JiraComment[] }>(
+        `/issue/${issueKey}/comment`,
+        { params: { maxResults: 100 } }
+      );
+      return response.data.comments;
+    } catch (error) {
+      throw this.handleError(
+        error,
+        `Failed to get comments for issue: ${issueKey}`
       );
     }
   }
